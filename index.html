@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slotify — Smart Parking Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <a href="#" class="logo">Slot<span>ify</span></a>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#solutions">Solutions</a></li>
+            <li><a href="#workflow">How It Works</a></li>
+            <li><a href="#demo">Live Demo</a></li>
+        </ul>
+        <a href="#demo" class="btn">Get Started</a>
+    </header>
+    <div class="hero">
+        <div class="hero-content">
+            <h1>Park smarter.<br><span>Zero hassle.</span></h1>
+            <p>Slotify completely eliminates urban and campus parking friction with real-time slot tracking, instant conflict-free reservations, and comprehensive admin insights.</p>
+            <div class="hero-btns">
+                <a href="#demo" class="btn">Reserve a Space</a>
+                <a href="#features" class="btn btn-outline">Explore System</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <h4>99.9%</h4>
+                    <p>Uptime Precision</p>
+                </div>
+                <div class="stat">
+                    <h4>Zero</h4>
+                    <p>Double Bookings</p>
+                </div>
+                <div class="stat">
+                    <h4>Real-Time</h4>
+                    <p>Live Sync</p>
+                </div>
+            </div>
+        </div>
+        <div class="hero-image-wrapper">
+            <div class="hero-image-bg"></div>
+        </div>
+    </div>
+    <section id="features">
+        <div class="section-header">
+            <h2>Engineered for scale</h2>
+            <p>Built with robust logic to handle dynamic vehicle flow and eliminate human error entirely.</p>
+        </div>
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-icon">01</div>
+                <h3>Real-Time Tracking</h3>
+                <p>Instantly check open slots across all facilities with automated low-latency status updates.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">02</div>
+                <h3>Lock-In Reservations</h3>
+                <p>Prevent double bookings permanently with an instantaneous transactional locking engine.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">03</div>
+                <h3>Admin Analytics</h3>
+                <p>Gain absolute visibility over occupancy patterns, peak rush hours, and space utilization metrics.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solutions -->
+    <div id="solutions">
+        <div class="dual-section">
+            <div class="section-header" style="margin-bottom: 30px;">
+                <h2>Tailored for every role</h2>
+                <p>Customized workflows optimized specifically for drivers and parking administrators.</p>
+            </div>
+            <div class="dual-tabs">
+                <button class="tab-btn active" onclick="switchTab('user', this)">For Drivers</button>
+                <button class="tab-btn" onclick="switchTab('admin', this)">For Administrators</button>
+            </div>
+
+            <div class="tab-pane" id="pane-user">
+                <div>
+                    <h3 style="font-size: 22px; margin-bottom: 10px;">Frictionless space finding</h3>
+                    <p style="color: #9ca3af; font-size: 15px;">Stop circling blocks or campus grounds. Secure your exact spot before departure.</p>
+                    <ul class="pane-list">
+                        <li><span>✓</span> Live availability checks before arrival</li>
+                        <li><span>✓</span> Instant mobile slot reservation confirmation</li>
+                        <li><span>✓</span> Easy booking management and cancellation</li>
+                    </ul>
+                </div>
+                <div class="pane-preview">
+                    <p style="font-size: 13px; color: #9ca3af; text-transform: uppercase; margin-bottom: 10px;">User View Example</p>
+                    <div style="background: #12141c; padding: 15px; border-radius: 8px; border: 1px solid #222634;">
+                        <p style="font-weight: bold; font-size: 15px; margin: 0 0 5px 0;">Active Reservation: Slot A-01</p>
+                        <p style="font-size: 13px; color: #22c55e; margin: 0;">Confirmed &bull; Valid for 45 mins</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane" id="pane-admin" style="display:none;">
+                <div>
+                    <h3 style="font-size: 22px; margin-bottom: 10px;">Complete facility control</h3>
+                    <p style="color: #9ca3af; font-size: 15px;">Monitor overall property layout, handle discrepancies, and review data effortlessly.</p>
+                    <ul class="pane-list">
+                        <li><span>✓</span> Centralized facility occupancy dashboards</li>
+                        <li><span>✓</span> Slot layout management & maintenance controls</li>
+                        <li><span>✓</span> Automated conflict resolution & log tracking</li>
+                    </ul>
+                </div>
+                <div class="pane-preview">
+                    <p style="font-size: 13px; color: #9ca3af; text-transform: uppercase; margin-bottom: 10px;">Admin Dashboard Feed</p>
+                    <div style="background: #12141c; padding: 15px; border-radius: 8px; border: 1px solid #222634; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <p style="font-weight: bold; font-size: 15px; margin: 0 0 5px 0;">Total Utilization</p>
+                            <p style="font-size: 16px; font-weight: bold; color: #38bdf8; margin: 0;">84% Occupied</p>
+                        </div>
+                        <span style="font-size: 20px;">📊</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <section id="workflow">
+        <div class="section-header">
+            <h2>How Slotify works</h2>
+            <p>A streamlined three-step workflow from search to park.</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <span>Step 01</span>
+                <h3>Check & Choose</h3>
+                <p>Open the portal to view live slot availability across zones in real time.</p>
+            </div>
+            <div class="step-card">
+                <span>Step 02</span>
+                <h3>Instant Lock</h3>
+                <p>Secure your preferred space with a single tap, locking it against duplicate reservations.</p>
+            </div>
+            <div class="step-card">
+                <span>Step 03</span>
+                <h3>Park & Go</h3>
+                <p>Arrive at your designated facility and park smoothly without any delay.</p>
+            </div>
+        </div>
+    </section>
+    <section id="demo">
+        <div class="sim-box">
+            <div>
+                <h2 style="font-size: 28px; margin-bottom: 15px;">Live Simulation</h2>
+                <p style="color: #9ca3af; margin-bottom: 20px;">Click available slots below to test the instant reservation booking response engine.</p>
+                <div id="status-text" style="font-weight: bold; font-size: 15px; color: #22c55e;">System active. Ready for test bookings.</div>
+            </div>
+            <div class="slots-grid">
+                <div class="slot-item available" onclick="bookSlot(this, 'A-01')">
+                    <h4>Slot A-01</h4>
+                    <span>Available</span>
+                </div>
+                <div class="slot-item occupied">
+                    <h4>Slot A-02</h4>
+                    <span>Occupied</span>
+                </div>
+                <div class="slot-item available" onclick="bookSlot(this, 'B-01')">
+                    <h4>Slot B-01</h4>
+                    <span>Available</span>
+                </div>
+                <div class="slot-item available" onclick="bookSlot(this, 'B-02')">
+                    <h4>Slot B-02</h4>
+                    <span>Available</span>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="cta-banner">
+        <h2>Ready to upgrade your parking ecosystem?</h2>
+        <p>Deploy Slotify today to eliminate congestion and streamline your reservation workflow.</p>
+        <button class="btn" onclick="alert('System initialization sequence started successfully!')">Deploy Slotify System</button>
+    </div>
+    <footer>
+        <p>&copy; 2026 Slotify Systems. All rights reserved.</p>
+        <p>Smart Parking Management Platform</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
