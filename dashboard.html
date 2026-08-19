@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard — Slotify</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <a href="#" class="logo">Slot<span>ify</span> <span style="font-size: 12px; color: #9ca3af; font-weight: normal;">| Driver Portal</span></a>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <span id="userNameDisplay" style="font-size: 14px; color: #9ca3af;"></span>
+            <button onclick="logout()" class="btn btn-outline" style="padding: 6px 14px; font-size: 13px;">Log Out</button>
+        </div>
+    </header>
+
+    <section style="padding-top: 140px;">
+        <div class="section-header">
+            <h2>Available Parking Slots</h2>
+            <p>Select an open zone below to reserve your slot instantly.</p>
+        </div>
+        <div id="status-text" style="font-weight: bold; font-size: 15px; color: #22c55e; margin-bottom: 20px;">System synchronized. Ready for reservations.</div>
+        <div class="slots-grid" style="max-width: 600px;">
+            <div class="slot-item available" onclick="bookSlot(this, 'A-01')">
+                <h4>Slot A-01</h4>
+                <span>Available</span>
+            </div>
+            <div class="slot-item occupied">
+                <h4>Slot A-02</h4>
+                <span>Occupied</span>
+            </div>
+            <div class="slot-item available" onclick="bookSlot(this, 'B-01')">
+                <h4>Slot B-01</h4>
+                <span>Available</span>
+            </div>
+            <div class="slot-item available" onclick="bookSlot(this, 'B-02')">
+                <span>Available</span>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Slotify Systems. All rights reserved.</p>
+        <p>Smart Parking Management Platform</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        checkAuth('user');
+        document.getElementById('userNameDisplay').innerText = 'Hello, ' + getCurrentUser().name;
+    </script>
+</body>
+</html>

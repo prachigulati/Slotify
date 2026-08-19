@@ -8,21 +8,24 @@
 </head>
 <body>
     <header>
-        <a href="#" class="logo">Slot<span>ify</span></a>
+        <a href="index.html" class="logo">Slot<span>ify</span></a>
         <ul class="nav-links">
             <li><a href="#features">Features</a></li>
             <li><a href="#solutions">Solutions</a></li>
             <li><a href="#workflow">How It Works</a></li>
             <li><a href="#demo">Live Demo</a></li>
         </ul>
-        <a href="#demo" class="btn">Get Started</a>
+        <div style="display: flex; gap: 10px;">
+            <a href="login.html" class="btn btn-outline" style="padding: 8px 16px;">Login</a>
+            <a href="signup.html" class="btn" style="padding: 8px 16px;">Sign Up</a>
+        </div>
     </header>
     <div class="hero">
         <div class="hero-content">
             <h1>Park smarter.<br><span>Zero hassle.</span></h1>
             <p>Slotify completely eliminates urban and campus parking friction with real-time slot tracking, instant conflict-free reservations, and comprehensive admin insights.</p>
             <div class="hero-btns">
-                <a href="#demo" class="btn">Reserve a Space</a>
+                <a href="signup.html" class="btn">Reserve a Space</a>
                 <a href="#features" class="btn btn-outline">Explore System</a>
             </div>
             <div class="hero-stats">
@@ -67,8 +70,6 @@
             </div>
         </div>
     </section>
-
-    <!-- Solutions -->
     <div id="solutions">
         <div class="dual-section">
             <div class="section-header" style="margin-bottom: 30px;">
@@ -175,7 +176,7 @@
     <div class="cta-banner">
         <h2>Ready to upgrade your parking ecosystem?</h2>
         <p>Deploy Slotify today to eliminate congestion and streamline your reservation workflow.</p>
-        <button class="btn" onclick="alert('System initialization sequence started successfully!')">Deploy Slotify System</button>
+        <a href="signup.html" class="btn" style="padding: 12px 24px;">Deploy Slotify System</a>
     </div>
     <footer>
         <p>&copy; 2026 Slotify Systems. All rights reserved.</p>

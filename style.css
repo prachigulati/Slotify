@@ -7,6 +7,7 @@ body {
     line-height: 1.5;
 }
 
+/* Nav */
 header {
     position: fixed;
     top: 0;
@@ -63,6 +64,8 @@ header {
     border: none;
     cursor: pointer;
     transition: transform 0.2s, background 0.2s;
+    display: inline-flex;
+    align-items: center;
 }
 
 .btn:hover {
@@ -79,6 +82,76 @@ header {
 .btn-outline:hover {
     background: #1a1d28;
     border-color: #9ca3af;
+}
+
+/* Auth Pages Styling */
+.auth-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.auth-card {
+    background: #12141c;
+    border: 1px solid #222634;
+    padding: 40px;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.auth-card h2 {
+    font-size: 24px;
+    margin: 0 0 8px 0;
+}
+
+.auth-sub {
+    color: #9ca3af;
+    font-size: 14px;
+    margin: 0 0 25px 0;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.form-group input, .auth-select {
+    width: 100%;
+    background: #0a0b0e;
+    border: 1px solid #222634;
+    padding: 12px;
+    border-radius: 8px;
+    color: #f3f4f6;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.form-group input:focus, .auth-select:focus {
+    border-color: #22c55e;
+}
+
+.auth-footer-text {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+.auth-footer-text a {
+    color: #22c55e;
+    text-decoration: none;
+    font-weight: bold;
 }
 
 /* Hero */
@@ -156,6 +229,7 @@ header {
     transform: scale(1.02);
 }
 
+/* Sections */
 section {
     max-width: 1200px;
     margin: 0 auto;
@@ -177,6 +251,7 @@ section {
     margin: 0;
 }
 
+/* Features */
 .grid-3 {
     display: flex;
     gap: 20px;
@@ -220,6 +295,7 @@ section {
     color: #22c55e;
 }
 
+/* Dual Section */
 .dual-section {
     background: #12141c;
     border: 1px solid #222634;
@@ -297,6 +373,7 @@ section {
     padding: 30px;
 }
 
+/* Simulator */
 .sim-box {
     background: #12141c;
     border: 1px solid #222634;
@@ -352,6 +429,7 @@ section {
     color: #9ca3af;
 }
 
+/* Steps */
 .steps-grid {
     display: flex;
     gap: 30px;
@@ -381,6 +459,7 @@ section {
     margin: 0;
 }
 
+/* CTA */
 .cta-banner {
     background: #12141c;
     border: 1px solid #222634;
@@ -402,6 +481,7 @@ section {
     margin: 0 auto 30px auto;
 }
 
+/* Footer */
 footer {
     border-top: 1px solid #222634;
     background: #0a0b0e;
@@ -418,4 +498,17 @@ footer {
 
 footer p {
     margin: 0;
+}
+
+@media(max-width: 900px) {
+    .hero, .sim-box, .grid-3, .steps-grid, .tab-pane {
+        flex-direction: column;
+    }
+    .nav-links {
+        display: none;
+    }
+    .hero-stats {
+        flex-direction: column;
+        gap: 15px;
+    }
 }
