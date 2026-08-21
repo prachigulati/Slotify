@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slotify — Book a Parking Spot</title>
+<style>
+  /* ============================================================
+     Page-scoped styles for the booking screen.
+     Shared chrome (header, .logo, .btn, .btn-outline, footer) is
+     left to style.css so it inherits the real site theme once this
+     sits in the project. Colors below are inferred from the inline
+     styles in the index.html you pasted (#0b0d13 / #12141c page and
+     card backgrounds, #222634 borders, #9ca3af muted text, #22c55e
+     available/success green, #38bdf8 info blue) — swap the
+     variables if your real style.css defines different tokens.
+     ============================================================ */
+  :root {
+    --bg: #0b0d13;
+    --panel: #12141c;
+    --panel-alt: #171a24;
+    --border: #222634;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --available: #22c55e;
+    --selected: #38bdf8;
+    --occupied: #ef4444;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  .booking-hero {
+    padding: 40px 40px 10px;
+  }
+
+  .booking-hero .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 11px;
+    color: var(--muted);
+    margin: 0 0 6px;
+    font-weight: 600;
+  }
+
+  .booking-hero h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    font-weight: 800;
+  }
+
+  .booking-hero h1 span { color: var(--selected); }
+
+  .booking-hero p {
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 640px;
+    margin: 0;
+  }
+
+  .booking-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);
+    gap: 22px;
+    padding: 24px 40px 60px;
+    align-items: start;
+  }
+
+  .map-card, .side-card {
+    container-type: inline-size;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+
+  .map-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .map-card-head h2, .side-card h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .map-viewport {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel-alt);
+  }
+
+  .map-canvas {
+    position: relative;
+    width: 100%;
+    min-height: 900px;
+    padding: 24px 8px 8px 24px;
+  }
+
+  .col-ruler, .row-ruler {
+    position: absolute;
+    font-size: clamp(7px, 1.1cqw, 10px);
+    font-weight: 700;
+    color: #4b5566;
+    pointer-events: none;
+  }
+
+  .col-ruler { top: 0; left: 24px; right: 0; height: 20px; }
+  .col-ruler span { position: absolute; transform: translateX(-50%); }
+  .row-ruler { top: 24px; bottom: 0; left: 0; width: 20px; }
+  .row-ruler span { position: absolute; transform: translateY(-50%); }
+
+  .map-grid {
+    position: relative;
+    width: 100%;
+    height: 860px;
+    background:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 100% calc(100%/6),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / calc(100%/11) 100%;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .zone-block {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.01);
+  }
+
+  .zone-label {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    font-size: clamp(5.5px, 0.85cqw, 7.5px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #6b7688;
+    white-space: nowrap;
+    background: rgba(23, 26, 36, 0.85);
+    padding: 0 2px;
+    border-radius: 1px;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .zone-slots {
+    position: absolute;
+    top: 7px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    gap: 2px;
+    padding: 0 2px 2px;
+  }
+
+  .slot-checkbox { position: absolute; opacity: 0; pointer-events: none; }
+
+  .slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: rgba(34, 197, 94, 0.07);
+    border: 1px solid rgba(34, 197, 94, 0.55);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.1s ease, border-color 0.1s ease;
+  }
+
+  .slot span {
+    font-size: clamp(6px, 1cqw, 8.5px);
+    font-weight: 700;
+    font-family: "SF Mono", "Courier New", monospace;
+    letter-spacing: 0.01em;
+    color: #c7cdd8;
+    pointer-events: none;
+  }
+
+  .slot.booked span {
+    font-size: clamp(6px, 1cqw, 8.5px);
+    font-family: "SF Mono", "Courier New", monospace;
+  }
+
+  .slot:hover { background: rgba(34, 197, 94, 0.24); }
+
+  .slot-checkbox:checked + .slot {
+    background: var(--selected);
+    border-color: #7dd3fc;
+  }
+
+  .slot-checkbox:checked + .slot span { color: #06202e; }
+
+  .slot.booked {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: repeating-linear-gradient(45deg, rgba(239,68,68,0.14), rgba(239,68,68,0.14) 3px, rgba(239,68,68,0.03) 3px, rgba(239,68,68,0.03) 6px);
+    border: 1px solid rgba(239,68,68,0.5);
+    border-radius: 2px;
+    cursor: not-allowed;
+  }
+
+  .slot.booked span { color: #f3a5a5; }
+
+  .map-footnote {
+    margin: 12px 2px 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .sw.available { background: rgba(34,197,94,0.15); border: 1.2px solid rgba(34,197,94,0.7); }
+  .sw.selected { background: var(--selected); border: 1.2px solid #7dd3fc; }
+  .sw.booked { background: repeating-linear-gradient(45deg, rgba(239,68,68,0.2), rgba(239,68,68,0.2) 3px, rgba(239,68,68,0.04) 3px, rgba(239,68,68,0.04) 6px); border: 1.2px solid rgba(239,68,68,0.6); }
+
+  .duration-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    margin: 4px 0 16px;
+    color: var(--text);
+  }
+
+  .duration-row input {
+    width: 64px;
+    padding: 6px 8px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  #summary-list {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    font-size: 13px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  #summary-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px dotted var(--border);
+  }
+
+  #summary-list li span.slot-name { color: var(--text); font-weight: 700; }
+  #summary-list li span.slot-zone { color: var(--muted); font-weight: 400; font-size: 11px; }
+
+  .summary-empty { font-size: 12px; color: var(--muted); padding: 6px 0; }
+
+  .summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 6px;
+    font-size: 13px;
+  }
+
+  .summary-total strong { font-size: 20px; color: var(--selected); }
+
+  #confirm-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px;
+    background: var(--selected);
+    color: #06202e;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+  }
+
+  #confirm-btn:disabled { background: #2a3040; color: #6b7280; cursor: not-allowed; }
+  #confirm-btn:not(:disabled):hover { background: #7dd3fc; }
+
+  #confirm-msg {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--available);
+    display: none;
+  }
+
+  @media (max-width: 900px) {
+    .booking-layout { grid-template-columns: 1fr; padding: 16px; }
+    .booking-hero { padding: 24px 16px 6px; }
+  }
+</style>
+</head>
+<body>
+    <div class="booking-hero">
+        <p class="eyebrow">Elante Mall · Basement Level</p>
+        <h1>Reserve your <span>spot</span></h1>
+        <p>Click a spot to select it. Scroll down inside the map to reach the lower rows.</p>
+    </div>
+
+    <div class="booking-layout">
+      <section class="map-card">
+        <div class="map-card-head">
+          <h2>Spot Selector</h2>
+        </div>
+
+        <div class="map-viewport">
+          <div class="map-canvas">
+            <div class="col-ruler"><span style="left:0.0%">1</span><span style="left:9.090909090909092%">2</span><span style="left:18.181818181818183%">3</span><span style="left:27.272727272727273%">4</span><span style="left:36.36363636363637%">5</span><span style="left:45.45454545454545%">6</span><span style="left:54.54545454545455%">7</span><span style="left:63.63636363636363%">8</span><span style="left:72.72727272727273%">9</span><span style="left:81.81818181818181%">10</span><span style="left:90.9090909090909%">11</span></div>
+            <div class="row-ruler"><span style="top:9.0%">A</span><span style="top:26.0%">B</span><span style="top:42.0%">C</span><span style="top:58.0%">D</span><span style="top:74.0%">E</span><span style="top:91.0%">F</span></div>
+            <div class="map-grid">
+              
+      <div class="zone-block" style="left:9%; top:16%; width:6%; height:24%;">
+        <span class="zone-label">Coop Parking</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="coop-A1" data-zone="coop" data-label="A1" />
+<label for="coop-A1" class="slot" title="A1 — Available"><span>A1</span></label>
+<div class="slot booked" title="A2 — Occupied"><span>A2</span></div>
+<div class="slot booked" title="A3 — Occupied"><span>A3</span></div>
+<div class="slot booked" title="A4 — Occupied"><span>A4</span></div>
+<input type="checkbox" class="slot-checkbox" id="coop-A5" data-zone="coop" data-label="A5" />
+<label for="coop-A5" class="slot" title="A5 — Available"><span>A5</span></label>
+<input type="checkbox" class="slot-checkbox" id="coop-A6" data-zone="coop" data-label="A6" />
+<label for="coop-A6" class="slot" title="A6 — Available"><span>A6</span></label>
+<input type="checkbox" class="slot-checkbox" id="coop-A7" data-zone="coop" data-label="A7" />
+<label for="coop-A7" class="slot" title="A7 — Available"><span>A7</span></label>
+<div class="slot booked" title="A8 — Occupied"><span>A8</span></div>
+<input type="checkbox" class="slot-checkbox" id="coop-A9" data-zone="coop" data-label="A9" />
+<label for="coop-A9" class="slot" title="A9 — Available"><span>A9</span></label>
+<div class="slot booked" title="A10 — Occupied"><span>A10</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:9%; top:41%; width:6%; height:24%;">
+        <span class="zone-label">Car Parking (L1)</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, 1fr);">
+          <div class="slot booked" title="C1 — Occupied"><span>C1</span></div>
+<input type="checkbox" class="slot-checkbox" id="carL1-C2" data-zone="carL1" data-label="C2" />
+<label for="carL1-C2" class="slot" title="C2 — Available"><span>C2</span></label>
+<div class="slot booked" title="C3 — Occupied"><span>C3</span></div>
+<div class="slot booked" title="C4 — Occupied"><span>C4</span></div>
+<input type="checkbox" class="slot-checkbox" id="carL1-C5" data-zone="carL1" data-label="C5" />
+<label for="carL1-C5" class="slot" title="C5 — Available"><span>C5</span></label>
+<input type="checkbox" class="slot-checkbox" id="carL1-C6" data-zone="carL1" data-label="C6" />
+<label for="carL1-C6" class="slot" title="C6 — Available"><span>C6</span></label>
+<div class="slot booked" title="C7 — Occupied"><span>C7</span></div>
+<input type="checkbox" class="slot-checkbox" id="carL1-C8" data-zone="carL1" data-label="C8" />
+<label for="carL1-C8" class="slot" title="C8 — Available"><span>C8</span></label>
+<input type="checkbox" class="slot-checkbox" id="carL1-C9" data-zone="carL1" data-label="C9" />
+<label for="carL1-C9" class="slot" title="C9 — Available"><span>C9</span></label>
+<div class="slot booked" title="C10 — Occupied"><span>C10</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:9%; top:66%; width:6%; height:15%;">
+        <span class="zone-label">Prime Zone Bay</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="prime-E1" data-zone="prime" data-label="E1" />
+<label for="prime-E1" class="slot" title="E1 — Available"><span>E1</span></label>
+<input type="checkbox" class="slot-checkbox" id="prime-E2" data-zone="prime" data-label="E2" />
+<label for="prime-E2" class="slot" title="E2 — Available"><span>E2</span></label>
+<input type="checkbox" class="slot-checkbox" id="prime-E3" data-zone="prime" data-label="E3" />
+<label for="prime-E3" class="slot" title="E3 — Available"><span>E3</span></label>
+<div class="slot booked" title="E4 — Occupied"><span>E4</span></div>
+<input type="checkbox" class="slot-checkbox" id="prime-E5" data-zone="prime" data-label="E5" />
+<label for="prime-E5" class="slot" title="E5 — Available"><span>E5</span></label>
+<input type="checkbox" class="slot-checkbox" id="prime-E6" data-zone="prime" data-label="E6" />
+<label for="prime-E6" class="slot" title="E6 — Available"><span>E6</span></label>
+<div class="slot booked" title="E7 — Occupied"><span>E7</span></div>
+<div class="slot booked" title="E8 — Occupied"><span>E8</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:9%; top:82%; width:11%; height:10%;">
+        <span class="zone-label">Two-Wheeler Parking</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="twowheelB-F1" data-zone="twowheelB" data-label="F1" />
+<label for="twowheelB-F1" class="slot" title="F1 — Available"><span>F1</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F2" data-zone="twowheelB" data-label="F2" />
+<label for="twowheelB-F2" class="slot" title="F2 — Available"><span>F2</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F3" data-zone="twowheelB" data-label="F3" />
+<label for="twowheelB-F3" class="slot" title="F3 — Available"><span>F3</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F4" data-zone="twowheelB" data-label="F4" />
+<label for="twowheelB-F4" class="slot" title="F4 — Available"><span>F4</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F5" data-zone="twowheelB" data-label="F5" />
+<label for="twowheelB-F5" class="slot" title="F5 — Available"><span>F5</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F6" data-zone="twowheelB" data-label="F6" />
+<label for="twowheelB-F6" class="slot" title="F6 — Available"><span>F6</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F7" data-zone="twowheelB" data-label="F7" />
+<label for="twowheelB-F7" class="slot" title="F7 — Available"><span>F7</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F8" data-zone="twowheelB" data-label="F8" />
+<label for="twowheelB-F8" class="slot" title="F8 — Available"><span>F8</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F9" data-zone="twowheelB" data-label="F9" />
+<label for="twowheelB-F9" class="slot" title="F9 — Available"><span>F9</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F10" data-zone="twowheelB" data-label="F10" />
+<label for="twowheelB-F10" class="slot" title="F10 — Available"><span>F10</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F11" data-zone="twowheelB" data-label="F11" />
+<label for="twowheelB-F11" class="slot" title="F11 — Available"><span>F11</span></label>
+<input type="checkbox" class="slot-checkbox" id="twowheelB-F12" data-zone="twowheelB" data-label="F12" />
+<label for="twowheelB-F12" class="slot" title="F12 — Available"><span>F12</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:23%; top:82%; width:17%; height:10%;">
+        <span class="zone-label">EV Charging Bay (Mid)</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="evbaymid-F13" data-zone="evbaymid" data-label="F13" />
+<label for="evbaymid-F13" class="slot" title="F13 — Available"><span>F13</span></label>
+<div class="slot booked" title="F14 — Occupied"><span>F14</span></div>
+<div class="slot booked" title="F15 — Occupied"><span>F15</span></div>
+<input type="checkbox" class="slot-checkbox" id="evbaymid-F16" data-zone="evbaymid" data-label="F16" />
+<label for="evbaymid-F16" class="slot" title="F16 — Available"><span>F16</span></label>
+<div class="slot booked" title="F17 — Occupied"><span>F17</span></div>
+<div class="slot booked" title="F18 — Occupied"><span>F18</span></div>
+<div class="slot booked" title="F19 — Occupied"><span>F19</span></div>
+<div class="slot booked" title="F20 — Occupied"><span>F20</span></div>
+<input type="checkbox" class="slot-checkbox" id="evbaymid-F21" data-zone="evbaymid" data-label="F21" />
+<label for="evbaymid-F21" class="slot" title="F21 — Available"><span>F21</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaymid-F22" data-zone="evbaymid" data-label="F22" />
+<label for="evbaymid-F22" class="slot" title="F22 — Available"><span>F22</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaymid-F23" data-zone="evbaymid" data-label="F23" />
+<label for="evbaymid-F23" class="slot" title="F23 — Available"><span>F23</span></label>
+<div class="slot booked" title="F24 — Occupied"><span>F24</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:16%; top:92%; width:41%; height:8%;">
+        <span class="zone-label">EV Charging Bay (Wide)</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <div class="slot booked" title="F25 — Occupied"><span>F25</span></div>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F26" data-zone="evbaywide" data-label="F26" />
+<label for="evbaywide-F26" class="slot" title="F26 — Available"><span>F26</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F27" data-zone="evbaywide" data-label="F27" />
+<label for="evbaywide-F27" class="slot" title="F27 — Available"><span>F27</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F28" data-zone="evbaywide" data-label="F28" />
+<label for="evbaywide-F28" class="slot" title="F28 — Available"><span>F28</span></label>
+<div class="slot booked" title="F29 — Occupied"><span>F29</span></div>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F30" data-zone="evbaywide" data-label="F30" />
+<label for="evbaywide-F30" class="slot" title="F30 — Available"><span>F30</span></label>
+<div class="slot booked" title="F31 — Occupied"><span>F31</span></div>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F32" data-zone="evbaywide" data-label="F32" />
+<label for="evbaywide-F32" class="slot" title="F32 — Available"><span>F32</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F33" data-zone="evbaywide" data-label="F33" />
+<label for="evbaywide-F33" class="slot" title="F33 — Available"><span>F33</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F34" data-zone="evbaywide" data-label="F34" />
+<label for="evbaywide-F34" class="slot" title="F34 — Available"><span>F34</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F35" data-zone="evbaywide" data-label="F35" />
+<label for="evbaywide-F35" class="slot" title="F35 — Available"><span>F35</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F36" data-zone="evbaywide" data-label="F36" />
+<label for="evbaywide-F36" class="slot" title="F36 — Available"><span>F36</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F37" data-zone="evbaywide" data-label="F37" />
+<label for="evbaywide-F37" class="slot" title="F37 — Available"><span>F37</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F38" data-zone="evbaywide" data-label="F38" />
+<label for="evbaywide-F38" class="slot" title="F38 — Available"><span>F38</span></label>
+<div class="slot booked" title="F39 — Occupied"><span>F39</span></div>
+<div class="slot booked" title="F40 — Occupied"><span>F40</span></div>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F41" data-zone="evbaywide" data-label="F41" />
+<label for="evbaywide-F41" class="slot" title="F41 — Available"><span>F41</span></label>
+<div class="slot booked" title="F42 — Occupied"><span>F42</span></div>
+<div class="slot booked" title="F43 — Occupied"><span>F43</span></div>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F44" data-zone="evbaywide" data-label="F44" />
+<label for="evbaywide-F44" class="slot" title="F44 — Available"><span>F44</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F45" data-zone="evbaywide" data-label="F45" />
+<label for="evbaywide-F45" class="slot" title="F45 — Available"><span>F45</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F46" data-zone="evbaywide" data-label="F46" />
+<label for="evbaywide-F46" class="slot" title="F46 — Available"><span>F46</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F47" data-zone="evbaywide" data-label="F47" />
+<label for="evbaywide-F47" class="slot" title="F47 — Available"><span>F47</span></label>
+<input type="checkbox" class="slot-checkbox" id="evbaywide-F48" data-zone="evbaywide" data-label="F48" />
+<label for="evbaywide-F48" class="slot" title="F48 — Available"><span>F48</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:16%; top:20%; width:24%; height:12%;">
+        <span class="zone-label">Car Parking (Ramp Side)</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="carTop-B1" data-zone="carTop" data-label="B1" />
+<label for="carTop-B1" class="slot" title="B1 — Available"><span>B1</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTop-B2" data-zone="carTop" data-label="B2" />
+<label for="carTop-B2" class="slot" title="B2 — Available"><span>B2</span></label>
+<div class="slot booked" title="B3 — Occupied"><span>B3</span></div>
+<div class="slot booked" title="B4 — Occupied"><span>B4</span></div>
+<input type="checkbox" class="slot-checkbox" id="carTop-B5" data-zone="carTop" data-label="B5" />
+<label for="carTop-B5" class="slot" title="B5 — Available"><span>B5</span></label>
+<div class="slot booked" title="B6 — Occupied"><span>B6</span></div>
+<input type="checkbox" class="slot-checkbox" id="carTop-B7" data-zone="carTop" data-label="B7" />
+<label for="carTop-B7" class="slot" title="B7 — Available"><span>B7</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTop-B8" data-zone="carTop" data-label="B8" />
+<label for="carTop-B8" class="slot" title="B8 — Available"><span>B8</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTop-B9" data-zone="carTop" data-label="B9" />
+<label for="carTop-B9" class="slot" title="B9 — Available"><span>B9</span></label>
+<div class="slot booked" title="B10 — Occupied"><span>B10</span></div>
+<input type="checkbox" class="slot-checkbox" id="carTop-B11" data-zone="carTop" data-label="B11" />
+<label for="carTop-B11" class="slot" title="B11 — Available"><span>B11</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTop-B12" data-zone="carTop" data-label="B12" />
+<label for="carTop-B12" class="slot" title="B12 — Available"><span>B12</span></label>
+<div class="slot booked" title="B13 — Occupied"><span>B13</span></div>
+<div class="slot booked" title="B14 — Occupied"><span>B14</span></div>
+<div class="slot booked" title="B15 — Occupied"><span>B15</span></div>
+<input type="checkbox" class="slot-checkbox" id="carTop-B16" data-zone="carTop" data-label="B16" />
+<label for="carTop-B16" class="slot" title="B16 — Available"><span>B16</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:16%; top:33%; width:24%; height:16%;">
+        <span class="zone-label">Zone C — Car Parking A</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(3, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="zoneC1-B17" data-zone="zoneC1" data-label="B17" />
+<label for="zoneC1-B17" class="slot" title="B17 — Available"><span>B17</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B18" data-zone="zoneC1" data-label="B18" />
+<label for="zoneC1-B18" class="slot" title="B18 — Available"><span>B18</span></label>
+<div class="slot booked" title="B19 — Occupied"><span>B19</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B20" data-zone="zoneC1" data-label="B20" />
+<label for="zoneC1-B20" class="slot" title="B20 — Available"><span>B20</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B21" data-zone="zoneC1" data-label="B21" />
+<label for="zoneC1-B21" class="slot" title="B21 — Available"><span>B21</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B22" data-zone="zoneC1" data-label="B22" />
+<label for="zoneC1-B22" class="slot" title="B22 — Available"><span>B22</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B23" data-zone="zoneC1" data-label="B23" />
+<label for="zoneC1-B23" class="slot" title="B23 — Available"><span>B23</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B24" data-zone="zoneC1" data-label="B24" />
+<label for="zoneC1-B24" class="slot" title="B24 — Available"><span>B24</span></label>
+<div class="slot booked" title="B25 — Occupied"><span>B25</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B26" data-zone="zoneC1" data-label="B26" />
+<label for="zoneC1-B26" class="slot" title="B26 — Available"><span>B26</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B27" data-zone="zoneC1" data-label="B27" />
+<label for="zoneC1-B27" class="slot" title="B27 — Available"><span>B27</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B28" data-zone="zoneC1" data-label="B28" />
+<label for="zoneC1-B28" class="slot" title="B28 — Available"><span>B28</span></label>
+<div class="slot booked" title="B29 — Occupied"><span>B29</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B30" data-zone="zoneC1" data-label="B30" />
+<label for="zoneC1-B30" class="slot" title="B30 — Available"><span>B30</span></label>
+<div class="slot booked" title="B31 — Occupied"><span>B31</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B32" data-zone="zoneC1" data-label="B32" />
+<label for="zoneC1-B32" class="slot" title="B32 — Available"><span>B32</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B33" data-zone="zoneC1" data-label="B33" />
+<label for="zoneC1-B33" class="slot" title="B33 — Available"><span>B33</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B34" data-zone="zoneC1" data-label="B34" />
+<label for="zoneC1-B34" class="slot" title="B34 — Available"><span>B34</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B35" data-zone="zoneC1" data-label="B35" />
+<label for="zoneC1-B35" class="slot" title="B35 — Available"><span>B35</span></label>
+<div class="slot booked" title="B36 — Occupied"><span>B36</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B37" data-zone="zoneC1" data-label="B37" />
+<label for="zoneC1-B37" class="slot" title="B37 — Available"><span>B37</span></label>
+<div class="slot booked" title="B38 — Occupied"><span>B38</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B39" data-zone="zoneC1" data-label="B39" />
+<label for="zoneC1-B39" class="slot" title="B39 — Available"><span>B39</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC1-B40" data-zone="zoneC1" data-label="B40" />
+<label for="zoneC1-B40" class="slot" title="B40 — Available"><span>B40</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:16%; top:50%; width:24%; height:16%;">
+        <span class="zone-label">Zone C — Car Parking B</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(3, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="zoneC2-D1" data-zone="zoneC2" data-label="D1" />
+<label for="zoneC2-D1" class="slot" title="D1 — Available"><span>D1</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D2" data-zone="zoneC2" data-label="D2" />
+<label for="zoneC2-D2" class="slot" title="D2 — Available"><span>D2</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D3" data-zone="zoneC2" data-label="D3" />
+<label for="zoneC2-D3" class="slot" title="D3 — Available"><span>D3</span></label>
+<div class="slot booked" title="D4 — Occupied"><span>D4</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D5" data-zone="zoneC2" data-label="D5" />
+<label for="zoneC2-D5" class="slot" title="D5 — Available"><span>D5</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D6" data-zone="zoneC2" data-label="D6" />
+<label for="zoneC2-D6" class="slot" title="D6 — Available"><span>D6</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D7" data-zone="zoneC2" data-label="D7" />
+<label for="zoneC2-D7" class="slot" title="D7 — Available"><span>D7</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D8" data-zone="zoneC2" data-label="D8" />
+<label for="zoneC2-D8" class="slot" title="D8 — Available"><span>D8</span></label>
+<div class="slot booked" title="D9 — Occupied"><span>D9</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D10" data-zone="zoneC2" data-label="D10" />
+<label for="zoneC2-D10" class="slot" title="D10 — Available"><span>D10</span></label>
+<div class="slot booked" title="D11 — Occupied"><span>D11</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D12" data-zone="zoneC2" data-label="D12" />
+<label for="zoneC2-D12" class="slot" title="D12 — Available"><span>D12</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D13" data-zone="zoneC2" data-label="D13" />
+<label for="zoneC2-D13" class="slot" title="D13 — Available"><span>D13</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D14" data-zone="zoneC2" data-label="D14" />
+<label for="zoneC2-D14" class="slot" title="D14 — Available"><span>D14</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D15" data-zone="zoneC2" data-label="D15" />
+<label for="zoneC2-D15" class="slot" title="D15 — Available"><span>D15</span></label>
+<div class="slot booked" title="D16 — Occupied"><span>D16</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D17" data-zone="zoneC2" data-label="D17" />
+<label for="zoneC2-D17" class="slot" title="D17 — Available"><span>D17</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D18" data-zone="zoneC2" data-label="D18" />
+<label for="zoneC2-D18" class="slot" title="D18 — Available"><span>D18</span></label>
+<div class="slot booked" title="D19 — Occupied"><span>D19</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D20" data-zone="zoneC2" data-label="D20" />
+<label for="zoneC2-D20" class="slot" title="D20 — Available"><span>D20</span></label>
+<div class="slot booked" title="D21 — Occupied"><span>D21</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D22" data-zone="zoneC2" data-label="D22" />
+<label for="zoneC2-D22" class="slot" title="D22 — Available"><span>D22</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC2-D23" data-zone="zoneC2" data-label="D23" />
+<label for="zoneC2-D23" class="slot" title="D23 — Available"><span>D23</span></label>
+<div class="slot booked" title="D24 — Occupied"><span>D24</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:16%; top:67%; width:24%; height:15%;">
+        <span class="zone-label">Zone C — Car Parking C</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(3, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="zoneC3-E9" data-zone="zoneC3" data-label="E9" />
+<label for="zoneC3-E9" class="slot" title="E9 — Available"><span>E9</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E10" data-zone="zoneC3" data-label="E10" />
+<label for="zoneC3-E10" class="slot" title="E10 — Available"><span>E10</span></label>
+<div class="slot booked" title="E11 — Occupied"><span>E11</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E12" data-zone="zoneC3" data-label="E12" />
+<label for="zoneC3-E12" class="slot" title="E12 — Available"><span>E12</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E13" data-zone="zoneC3" data-label="E13" />
+<label for="zoneC3-E13" class="slot" title="E13 — Available"><span>E13</span></label>
+<div class="slot booked" title="E14 — Occupied"><span>E14</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E15" data-zone="zoneC3" data-label="E15" />
+<label for="zoneC3-E15" class="slot" title="E15 — Available"><span>E15</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E16" data-zone="zoneC3" data-label="E16" />
+<label for="zoneC3-E16" class="slot" title="E16 — Available"><span>E16</span></label>
+<div class="slot booked" title="E17 — Occupied"><span>E17</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E18" data-zone="zoneC3" data-label="E18" />
+<label for="zoneC3-E18" class="slot" title="E18 — Available"><span>E18</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E19" data-zone="zoneC3" data-label="E19" />
+<label for="zoneC3-E19" class="slot" title="E19 — Available"><span>E19</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E20" data-zone="zoneC3" data-label="E20" />
+<label for="zoneC3-E20" class="slot" title="E20 — Available"><span>E20</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E21" data-zone="zoneC3" data-label="E21" />
+<label for="zoneC3-E21" class="slot" title="E21 — Available"><span>E21</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E22" data-zone="zoneC3" data-label="E22" />
+<label for="zoneC3-E22" class="slot" title="E22 — Available"><span>E22</span></label>
+<div class="slot booked" title="E23 — Occupied"><span>E23</span></div>
+<div class="slot booked" title="E24 — Occupied"><span>E24</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E25" data-zone="zoneC3" data-label="E25" />
+<label for="zoneC3-E25" class="slot" title="E25 — Available"><span>E25</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E26" data-zone="zoneC3" data-label="E26" />
+<label for="zoneC3-E26" class="slot" title="E26 — Available"><span>E26</span></label>
+<div class="slot booked" title="E27 — Occupied"><span>E27</span></div>
+<div class="slot booked" title="E28 — Occupied"><span>E28</span></div>
+<div class="slot booked" title="E29 — Occupied"><span>E29</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E30" data-zone="zoneC3" data-label="E30" />
+<label for="zoneC3-E30" class="slot" title="E30 — Available"><span>E30</span></label>
+<div class="slot booked" title="E31 — Occupied"><span>E31</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneC3-E32" data-zone="zoneC3" data-label="E32" />
+<label for="zoneC3-E32" class="slot" title="E32 — Available"><span>E32</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:44%; top:5%; width:16%; height:12%;">
+        <span class="zone-label">Car Parking (Top-Mid)</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="carTopMid-A11" data-zone="carTopMid" data-label="A11" />
+<label for="carTopMid-A11" class="slot" title="A11 — Available"><span>A11</span></label>
+<div class="slot booked" title="A12 — Occupied"><span>A12</span></div>
+<div class="slot booked" title="A13 — Occupied"><span>A13</span></div>
+<input type="checkbox" class="slot-checkbox" id="carTopMid-A14" data-zone="carTopMid" data-label="A14" />
+<label for="carTopMid-A14" class="slot" title="A14 — Available"><span>A14</span></label>
+<div class="slot booked" title="A15 — Occupied"><span>A15</span></div>
+<div class="slot booked" title="A16 — Occupied"><span>A16</span></div>
+<input type="checkbox" class="slot-checkbox" id="carTopMid-A17" data-zone="carTopMid" data-label="A17" />
+<label for="carTopMid-A17" class="slot" title="A17 — Available"><span>A17</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTopMid-A18" data-zone="carTopMid" data-label="A18" />
+<label for="carTopMid-A18" class="slot" title="A18 — Available"><span>A18</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTopMid-A19" data-zone="carTopMid" data-label="A19" />
+<label for="carTopMid-A19" class="slot" title="A19 — Available"><span>A19</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTopMid-A20" data-zone="carTopMid" data-label="A20" />
+<label for="carTopMid-A20" class="slot" title="A20 — Available"><span>A20</span></label>
+<input type="checkbox" class="slot-checkbox" id="carTopMid-A21" data-zone="carTopMid" data-label="A21" />
+<label for="carTopMid-A21" class="slot" title="A21 — Available"><span>A21</span></label>
+<div class="slot booked" title="A22 — Occupied"><span>A22</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:44%; top:19%; width:8%; height:12%;">
+        <span class="zone-label">2-Wheeler Bay</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <div class="slot booked" title="B41 — Occupied"><span>B41</span></div>
+<input type="checkbox" class="slot-checkbox" id="twBay2-B42" data-zone="twBay2" data-label="B42" />
+<label for="twBay2-B42" class="slot" title="B42 — Available"><span>B42</span></label>
+<input type="checkbox" class="slot-checkbox" id="twBay2-B43" data-zone="twBay2" data-label="B43" />
+<label for="twBay2-B43" class="slot" title="B43 — Available"><span>B43</span></label>
+<input type="checkbox" class="slot-checkbox" id="twBay2-B44" data-zone="twBay2" data-label="B44" />
+<label for="twBay2-B44" class="slot" title="B44 — Available"><span>B44</span></label>
+<input type="checkbox" class="slot-checkbox" id="twBay2-B45" data-zone="twBay2" data-label="B45" />
+<label for="twBay2-B45" class="slot" title="B45 — Available"><span>B45</span></label>
+<input type="checkbox" class="slot-checkbox" id="twBay2-B46" data-zone="twBay2" data-label="B46" />
+<label for="twBay2-B46" class="slot" title="B46 — Available"><span>B46</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:52%; top:19%; width:8%; height:12%;">
+        <span class="zone-label">Charging Bay</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="chargeBay-B47" data-zone="chargeBay" data-label="B47" />
+<label for="chargeBay-B47" class="slot" title="B47 — Available"><span>B47</span></label>
+<div class="slot booked" title="B48 — Occupied"><span>B48</span></div>
+<input type="checkbox" class="slot-checkbox" id="chargeBay-B49" data-zone="chargeBay" data-label="B49" />
+<label for="chargeBay-B49" class="slot" title="B49 — Available"><span>B49</span></label>
+<input type="checkbox" class="slot-checkbox" id="chargeBay-B50" data-zone="chargeBay" data-label="B50" />
+<label for="chargeBay-B50" class="slot" title="B50 — Available"><span>B50</span></label>
+<input type="checkbox" class="slot-checkbox" id="chargeBay-B51" data-zone="chargeBay" data-label="B51" />
+<label for="chargeBay-B51" class="slot" title="B51 — Available"><span>B51</span></label>
+<div class="slot booked" title="B52 — Occupied"><span>B52</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:44%; top:33%; width:8%; height:18%;">
+        <span class="zone-label">Two-Charging Parking</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);">
+          <div class="slot booked" title="B53 — Occupied"><span>B53</span></div>
+<input type="checkbox" class="slot-checkbox" id="twoCharge-B54" data-zone="twoCharge" data-label="B54" />
+<label for="twoCharge-B54" class="slot" title="B54 — Available"><span>B54</span></label>
+<input type="checkbox" class="slot-checkbox" id="twoCharge-B55" data-zone="twoCharge" data-label="B55" />
+<label for="twoCharge-B55" class="slot" title="B55 — Available"><span>B55</span></label>
+<div class="slot booked" title="B56 — Occupied"><span>B56</span></div>
+<div class="slot booked" title="B57 — Occupied"><span>B57</span></div>
+<input type="checkbox" class="slot-checkbox" id="twoCharge-B58" data-zone="twoCharge" data-label="B58" />
+<label for="twoCharge-B58" class="slot" title="B58 — Available"><span>B58</span></label>
+<input type="checkbox" class="slot-checkbox" id="twoCharge-B59" data-zone="twoCharge" data-label="B59" />
+<label for="twoCharge-B59" class="slot" title="B59 — Available"><span>B59</span></label>
+<input type="checkbox" class="slot-checkbox" id="twoCharge-B60" data-zone="twoCharge" data-label="B60" />
+<label for="twoCharge-B60" class="slot" title="B60 — Available"><span>B60</span></label>
+<input type="checkbox" class="slot-checkbox" id="twoCharge-B61" data-zone="twoCharge" data-label="B61" />
+<label for="twoCharge-B61" class="slot" title="B61 — Available"><span>B61</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:52%; top:33%; width:8%; height:34%;">
+        <span class="zone-label">Zone C — Right Block</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr);">
+          <div class="slot booked" title="B62 — Occupied"><span>B62</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B63" data-zone="zoneCR" data-label="B63" />
+<label for="zoneCR-B63" class="slot" title="B63 — Available"><span>B63</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B64" data-zone="zoneCR" data-label="B64" />
+<label for="zoneCR-B64" class="slot" title="B64 — Available"><span>B64</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B65" data-zone="zoneCR" data-label="B65" />
+<label for="zoneCR-B65" class="slot" title="B65 — Available"><span>B65</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B66" data-zone="zoneCR" data-label="B66" />
+<label for="zoneCR-B66" class="slot" title="B66 — Available"><span>B66</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B67" data-zone="zoneCR" data-label="B67" />
+<label for="zoneCR-B67" class="slot" title="B67 — Available"><span>B67</span></label>
+<div class="slot booked" title="B68 — Occupied"><span>B68</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B69" data-zone="zoneCR" data-label="B69" />
+<label for="zoneCR-B69" class="slot" title="B69 — Available"><span>B69</span></label>
+<div class="slot booked" title="B70 — Occupied"><span>B70</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B71" data-zone="zoneCR" data-label="B71" />
+<label for="zoneCR-B71" class="slot" title="B71 — Available"><span>B71</span></label>
+<div class="slot booked" title="B72 — Occupied"><span>B72</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B73" data-zone="zoneCR" data-label="B73" />
+<label for="zoneCR-B73" class="slot" title="B73 — Available"><span>B73</span></label>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B74" data-zone="zoneCR" data-label="B74" />
+<label for="zoneCR-B74" class="slot" title="B74 — Available"><span>B74</span></label>
+<div class="slot booked" title="B75 — Occupied"><span>B75</span></div>
+<input type="checkbox" class="slot-checkbox" id="zoneCR-B76" data-zone="zoneCR" data-label="B76" />
+<label for="zoneCR-B76" class="slot" title="B76 — Available"><span>B76</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:61%; top:5%; width:8%; height:34%;">
+        <span class="zone-label">Premium Parking (Top)</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="premTop-A23" data-zone="premTop" data-label="A23" />
+<label for="premTop-A23" class="slot" title="A23 — Available"><span>A23</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A24" data-zone="premTop" data-label="A24" />
+<label for="premTop-A24" class="slot" title="A24 — Available"><span>A24</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A25" data-zone="premTop" data-label="A25" />
+<label for="premTop-A25" class="slot" title="A25 — Available"><span>A25</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A26" data-zone="premTop" data-label="A26" />
+<label for="premTop-A26" class="slot" title="A26 — Available"><span>A26</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A27" data-zone="premTop" data-label="A27" />
+<label for="premTop-A27" class="slot" title="A27 — Available"><span>A27</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A28" data-zone="premTop" data-label="A28" />
+<label for="premTop-A28" class="slot" title="A28 — Available"><span>A28</span></label>
+<div class="slot booked" title="A29 — Occupied"><span>A29</span></div>
+<input type="checkbox" class="slot-checkbox" id="premTop-A30" data-zone="premTop" data-label="A30" />
+<label for="premTop-A30" class="slot" title="A30 — Available"><span>A30</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A31" data-zone="premTop" data-label="A31" />
+<label for="premTop-A31" class="slot" title="A31 — Available"><span>A31</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A32" data-zone="premTop" data-label="A32" />
+<label for="premTop-A32" class="slot" title="A32 — Available"><span>A32</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A33" data-zone="premTop" data-label="A33" />
+<label for="premTop-A33" class="slot" title="A33 — Available"><span>A33</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A34" data-zone="premTop" data-label="A34" />
+<label for="premTop-A34" class="slot" title="A34 — Available"><span>A34</span></label>
+<div class="slot booked" title="A35 — Occupied"><span>A35</span></div>
+<input type="checkbox" class="slot-checkbox" id="premTop-A36" data-zone="premTop" data-label="A36" />
+<label for="premTop-A36" class="slot" title="A36 — Available"><span>A36</span></label>
+<input type="checkbox" class="slot-checkbox" id="premTop-A37" data-zone="premTop" data-label="A37" />
+<label for="premTop-A37" class="slot" title="A37 — Available"><span>A37</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:61%; top:41%; width:8%; height:17%;">
+        <span class="zone-label">Premium Parking (Bottom)</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="premBot-C11" data-zone="premBot" data-label="C11" />
+<label for="premBot-C11" class="slot" title="C11 — Available"><span>C11</span></label>
+<div class="slot booked" title="C12 — Occupied"><span>C12</span></div>
+<input type="checkbox" class="slot-checkbox" id="premBot-C13" data-zone="premBot" data-label="C13" />
+<label for="premBot-C13" class="slot" title="C13 — Available"><span>C13</span></label>
+<div class="slot booked" title="C14 — Occupied"><span>C14</span></div>
+<div class="slot booked" title="C15 — Occupied"><span>C15</span></div>
+<input type="checkbox" class="slot-checkbox" id="premBot-C16" data-zone="premBot" data-label="C16" />
+<label for="premBot-C16" class="slot" title="C16 — Available"><span>C16</span></label>
+<input type="checkbox" class="slot-checkbox" id="premBot-C17" data-zone="premBot" data-label="C17" />
+<label for="premBot-C17" class="slot" title="C17 — Available"><span>C17</span></label>
+<div class="slot booked" title="C18 — Occupied"><span>C18</span></div>
+<div class="slot booked" title="C19 — Occupied"><span>C19</span></div>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:61%; top:60%; width:8%; height:14%;">
+        <span class="zone-label">Reserved Parking</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="reserved-D25" data-zone="reserved" data-label="D25" />
+<label for="reserved-D25" class="slot" title="D25 — Available"><span>D25</span></label>
+<div class="slot booked" title="D26 — Occupied"><span>D26</span></div>
+<input type="checkbox" class="slot-checkbox" id="reserved-D27" data-zone="reserved" data-label="D27" />
+<label for="reserved-D27" class="slot" title="D27 — Available"><span>D27</span></label>
+<input type="checkbox" class="slot-checkbox" id="reserved-D28" data-zone="reserved" data-label="D28" />
+<label for="reserved-D28" class="slot" title="D28 — Available"><span>D28</span></label>
+<input type="checkbox" class="slot-checkbox" id="reserved-D29" data-zone="reserved" data-label="D29" />
+<label for="reserved-D29" class="slot" title="D29 — Available"><span>D29</span></label>
+<input type="checkbox" class="slot-checkbox" id="reserved-D30" data-zone="reserved" data-label="D30" />
+<label for="reserved-D30" class="slot" title="D30 — Available"><span>D30</span></label>
+        </div>
+      </div>
+
+      <div class="zone-block" style="left:61%; top:83%; width:11%; height:14%;">
+        <span class="zone-label">Reserved Parking E/Exit</span>
+        <div class="zone-slots" style="grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(2, 1fr);">
+          <input type="checkbox" class="slot-checkbox" id="reservedExit-F49" data-zone="reservedExit" data-label="F49" />
+<label for="reservedExit-F49" class="slot" title="F49 — Available"><span>F49</span></label>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F50" data-zone="reservedExit" data-label="F50" />
+<label for="reservedExit-F50" class="slot" title="F50 — Available"><span>F50</span></label>
+<div class="slot booked" title="F51 — Occupied"><span>F51</span></div>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F52" data-zone="reservedExit" data-label="F52" />
+<label for="reservedExit-F52" class="slot" title="F52 — Available"><span>F52</span></label>
+<div class="slot booked" title="F53 — Occupied"><span>F53</span></div>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F54" data-zone="reservedExit" data-label="F54" />
+<label for="reservedExit-F54" class="slot" title="F54 — Available"><span>F54</span></label>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F55" data-zone="reservedExit" data-label="F55" />
+<label for="reservedExit-F55" class="slot" title="F55 — Available"><span>F55</span></label>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F56" data-zone="reservedExit" data-label="F56" />
+<label for="reservedExit-F56" class="slot" title="F56 — Available"><span>F56</span></label>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F57" data-zone="reservedExit" data-label="F57" />
+<label for="reservedExit-F57" class="slot" title="F57 — Available"><span>F57</span></label>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F58" data-zone="reservedExit" data-label="F58" />
+<label for="reservedExit-F58" class="slot" title="F58 — Available"><span>F58</span></label>
+<div class="slot booked" title="F59 — Occupied"><span>F59</span></div>
+<input type="checkbox" class="slot-checkbox" id="reservedExit-F60" data-zone="reservedExit" data-label="F60" />
+<label for="reservedExit-F60" class="slot" title="F60 — Available"><span>F60</span></label>
+        </div>
+      </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span><i class="sw available"></i> Available</span>
+          <span><i class="sw selected"></i> Selected</span>
+          <span><i class="sw booked"></i> Occupied</span>
+        </div>
+        <p class="map-footnote">Scroll down inside the map for the lower rows. Layout is a schematic grid, not to scale.</p>
+      </section>
+
+      <aside class="side-card">
+        <h2>Your Booking</h2>
+        <div class="duration-row">
+          <label for="duration">Duration (hours)</label>
+          <input type="number" id="duration" min="1" max="12" value="2" />
+        </div>
+        <ul id="summary-list"></ul>
+        <p class="summary-empty" id="summary-empty">No slots selected yet.</p>
+        <div class="summary-total">
+          <span>Estimated total</span>
+          <strong id="summary-total">₹0</strong>
+        </div>
+        <button id="confirm-btn" disabled>Confirm Booking</button>
+        <p id="confirm-msg">Booking confirmed. A summary would normally be sent to the backend here.</p>
+      </aside>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Slotify Systems. All rights reserved.</p>
+        <p>Smart Parking Management Platform</p>
+    </footer>
+
+<script>
+  const zoneMeta = {
+  "coop": { name: "Coop Parking", price: 30 },
+  "carL1": { name: "Car Parking (L1)", price: 30 },
+  "prime": { name: "Prime Zone Bay", price: 40 },
+  "twowheelB": { name: "Two-Wheeler Parking", price: 10 },
+  "evbaymid": { name: "EV Charging Bay (Mid)", price: 50 },
+  "evbaywide": { name: "EV Charging Bay (Wide)", price: 50 },
+  "carTop": { name: "Car Parking (Ramp Side)", price: 30 },
+  "zoneC1": { name: "Zone C — Car Parking A", price: 30 },
+  "zoneC2": { name: "Zone C — Car Parking B", price: 30 },
+  "zoneC3": { name: "Zone C — Car Parking C", price: 30 },
+  "carTopMid": { name: "Car Parking (Top-Mid)", price: 30 },
+  "twBay2": { name: "2-Wheeler Bay", price: 10 },
+  "chargeBay": { name: "Charging Bay", price: 50 },
+  "twoCharge": { name: "Two-Charging Parking", price: 50 },
+  "zoneCR": { name: "Zone C — Right Block", price: 30 },
+  "premTop": { name: "Premium Parking (Top)", price: 60 },
+  "premBot": { name: "Premium Parking (Bottom)", price: 60 },
+  "reserved": { name: "Reserved Parking", price: 45 },
+  "reservedExit": { name: "Reserved Parking E/Exit", price: 45 }
+  };
+
+  // ---- booking summary (same pattern as before: pure CSS drives the
+  // checked/unchecked look, JS only totals whatever is checked) ----
+  const checkboxes = Array.from(document.querySelectorAll('.slot-checkbox'));
+  const list = document.getElementById('summary-list');
+  const emptyMsg = document.getElementById('summary-empty');
+  const totalEl = document.getElementById('summary-total');
+  const confirmBtn = document.getElementById('confirm-btn');
+  const confirmMsg = document.getElementById('confirm-msg');
+  const durationInput = document.getElementById('duration');
+
+  function render() {
+    const selected = checkboxes.filter(cb => cb.checked);
+    list.innerHTML = '';
+    confirmMsg.style.display = 'none';
+    if (selected.length === 0) {
+      emptyMsg.style.display = 'block';
+      totalEl.textContent = '₹0';
+      confirmBtn.disabled = true;
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    const hours = Math.max(1, parseInt(durationInput.value, 10) || 1);
+    let total = 0;
+    selected.forEach(cb => {
+      const meta = zoneMeta[cb.dataset.zone];
+      const cost = meta.price * hours;
+      total += cost;
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="slot-name">${cb.dataset.label} <span class="slot-zone">— ${meta.name}</span></span><span>₹${cost}</span>`;
+      list.appendChild(li);
+    });
+    totalEl.textContent = `₹${total}`;
+    confirmBtn.disabled = false;
+  }
+  checkboxes.forEach(cb => cb.addEventListener('change', render));
+  durationInput.addEventListener('input', render);
+  confirmBtn.addEventListener('click', () => { confirmMsg.style.display = 'block'; });
+</script>
+</body>
+</html>
