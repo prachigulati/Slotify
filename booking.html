@@ -919,66 +919,7 @@
         <p>Smart Parking Management Platform</p>
     </footer>
 
-<script>
-  const zoneMeta = {
-  "coop": { name: "Coop Parking", price: 30 },
-  "carL1": { name: "Car Parking (L1)", price: 30 },
-  "prime": { name: "Prime Zone Bay", price: 40 },
-  "twowheelB": { name: "Two-Wheeler Parking", price: 10 },
-  "evbaymid": { name: "EV Charging Bay (Mid)", price: 50 },
-  "evbaywide": { name: "EV Charging Bay (Wide)", price: 50 },
-  "carTop": { name: "Car Parking (Ramp Side)", price: 30 },
-  "zoneC1": { name: "Zone C — Car Parking A", price: 30 },
-  "zoneC2": { name: "Zone C — Car Parking B", price: 30 },
-  "zoneC3": { name: "Zone C — Car Parking C", price: 30 },
-  "carTopMid": { name: "Car Parking (Top-Mid)", price: 30 },
-  "twBay2": { name: "2-Wheeler Bay", price: 10 },
-  "chargeBay": { name: "Charging Bay", price: 50 },
-  "twoCharge": { name: "Two-Charging Parking", price: 50 },
-  "zoneCR": { name: "Zone C — Right Block", price: 30 },
-  "premTop": { name: "Premium Parking (Top)", price: 60 },
-  "premBot": { name: "Premium Parking (Bottom)", price: 60 },
-  "reserved": { name: "Reserved Parking", price: 45 },
-  "reservedExit": { name: "Reserved Parking E/Exit", price: 45 }
-  };
 
-  // ---- booking summary (same pattern as before: pure CSS drives the
-  // checked/unchecked look, JS only totals whatever is checked) ----
-  const checkboxes = Array.from(document.querySelectorAll('.slot-checkbox'));
-  const list = document.getElementById('summary-list');
-  const emptyMsg = document.getElementById('summary-empty');
-  const totalEl = document.getElementById('summary-total');
-  const confirmBtn = document.getElementById('confirm-btn');
-  const confirmMsg = document.getElementById('confirm-msg');
-  const durationInput = document.getElementById('duration');
-
-  function render() {
-    const selected = checkboxes.filter(cb => cb.checked);
-    list.innerHTML = '';
-    confirmMsg.style.display = 'none';
-    if (selected.length === 0) {
-      emptyMsg.style.display = 'block';
-      totalEl.textContent = '₹0';
-      confirmBtn.disabled = true;
-      return;
-    }
-    emptyMsg.style.display = 'none';
-    const hours = Math.max(1, parseInt(durationInput.value, 10) || 1);
-    let total = 0;
-    selected.forEach(cb => {
-      const meta = zoneMeta[cb.dataset.zone];
-      const cost = meta.price * hours;
-      total += cost;
-      const li = document.createElement('li');
-      li.innerHTML = `<span class="slot-name">${cb.dataset.label} <span class="slot-zone">— ${meta.name}</span></span><span>₹${cost}</span>`;
-      list.appendChild(li);
-    });
-    totalEl.textContent = `₹${total}`;
-    confirmBtn.disabled = false;
-  }
-  checkboxes.forEach(cb => cb.addEventListener('change', render));
-  durationInput.addEventListener('input', render);
-  confirmBtn.addEventListener('click', () => { confirmMsg.style.display = 'block'; });
-</script>
+<script src="booking.js"></script>
 </body>
 </html>
