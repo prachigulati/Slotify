@@ -1,55 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Dashboard — Slotify</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Bookings — Slotify</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .dashboard-page { padding-top: 125px; min-height: 100vh; }
+    .dashboard-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 36px; }
+    .dashboard-top h1 { margin: 0 0 8px; font-size: 36px; }.dashboard-top p { color: #9ca3af; margin: 0; }
+    .dashboard-nav { display: flex; align-items: center; gap: 20px; color: #9ca3af; font-size: 14px; }.dashboard-nav a { color: #9ca3af; text-decoration: none; }.dashboard-nav a:hover { color: #f3f4f6; }
+    .dashboard-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 42px; }.summary-card { background: #12141c; border: 1px solid #222634; border-radius: 12px; padding: 20px; }.summary-card p { color: #9ca3af; font-size: 13px; margin: 0 0 8px; }.summary-card strong { font-size: 25px; }.active-count { color: #22c55e; }
+    .booking-section { margin-top: 34px; }.booking-section h2 { margin: 0 0 8px; font-size: 23px; }.booking-section > p { color: #9ca3af; margin: 0 0 18px; font-size: 14px; }.booking-list { display: grid; gap: 12px; }
+    .booking-card { background: #12141c; border: 1px solid #222634; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }.booking-slot { font-size: 17px; margin: 0 0 4px; }.booking-zone, .booking-time { margin: 0; color: #9ca3af; font-size: 13px; }.booking-right { text-align: right; min-width: 150px; }.booking-price { margin: 0 0 7px; font-weight: bold; }.booking-status { display: inline-block; padding: 4px 9px; border-radius: 20px; font-size: 12px; font-weight: bold; }.status-current { color: #86efac; background: rgba(34, 197, 94, .12); border: 1px solid rgba(34, 197, 94, .35); }.status-past { color: #9ca3af; background: #1a1d28; border: 1px solid #303545; }
+    .empty-bookings { background: #12141c; border: 1px dashed #303545; border-radius: 12px; padding: 32px; text-align: center; color: #9ca3af; }.empty-bookings p { margin: 0 0 16px; }
+    @media (max-width: 700px) { .dashboard-top, .booking-card { align-items: flex-start; flex-direction: column; } .dashboard-summary { grid-template-columns: 1fr; } .booking-right { text-align: left; } .dashboard-nav a, #dashboard-user-name { display: none; } }
+  </style>
 </head>
 <body>
-
-    <header>
-        <a href="#" class="logo">Slot<span>ify</span> <span style="font-size: 12px; color: #9ca3af; font-weight: normal;">| Driver Portal</span></a>
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <span id="userNameDisplay" style="font-size: 14px; color: #9ca3af;"></span>
-            <button onclick="logout()" class="btn btn-outline" style="padding: 6px 14px; font-size: 13px;">Log Out</button>
-        </div>
-    </header>
-
-    <section style="padding-top: 140px;">
-        <div class="section-header">
-            <h2>Available Parking Slots</h2>
-            <p>Select an open zone below to reserve your slot instantly.</p>
-        </div>
-        <div id="status-text" style="font-weight: bold; font-size: 15px; color: #22c55e; margin-bottom: 20px;">System synchronized. Ready for reservations.</div>
-        <div class="slots-grid" style="max-width: 600px;">
-            <div class="slot-item available" onclick="bookSlot(this, 'A-01')">
-                <h4>Slot A-01</h4>
-                <span>Available</span>
-            </div>
-            <div class="slot-item occupied">
-                <h4>Slot A-02</h4>
-                <span>Occupied</span>
-            </div>
-            <div class="slot-item available" onclick="bookSlot(this, 'B-01')">
-                <h4>Slot B-01</h4>
-                <span>Available</span>
-            </div>
-            <div class="slot-item available" onclick="bookSlot(this, 'B-02')">
-                <span>Available</span>
-            </div>
-        </div>
-    </section>
-
-    <footer>
-        <p>&copy; 2026 Slotify Systems. All rights reserved.</p>
-        <p>Smart Parking Management Platform</p>
-    </footer>
-
-    <script src="script.js"></script>
-    <script>
-        checkAuth('user');
-        document.getElementById('userNameDisplay').innerText = 'Hello, ' + getCurrentUser().name;
-    </script>
+  <header><a href="dashboard.html" class="logo">Slot<span>ify</span> <span style="font-size: 12px; color: #9ca3af; font-weight: normal;">| Driver Portal</span></a><div class="dashboard-nav"><a href="booking.html">Book a spot</a><span id="dashboard-user-name"></span><button onclick="logout()" class="btn btn-outline" style="padding: 6px 14px; font-size: 13px;">Log Out</button></div></header>
+  <main class="dashboard-page"><section><div class="dashboard-top"><div><h1 id="dashboard-title">My bookings</h1><p>Track your active parking reservations and booking history.</p></div><a class="btn" href="booking.html">Book a spot</a></div>
+    <div class="dashboard-summary"><div class="summary-card"><p>Current bookings</p><strong class="active-count" id="current-count">0</strong></div><div class="summary-card"><p>Past bookings</p><strong id="past-count">0</strong></div></div>
+    <div class="booking-section"><h2>Current bookings</h2><p>Your reservations that are still active.</p><div class="booking-list" id="current-bookings"></div></div><div class="booking-section"><h2>Past bookings</h2><p>Reservations whose parking period has ended.</p><div class="booking-list" id="past-bookings"></div></div>
+  </section></main>
+  <footer><p>&copy; 2026 Slotify Systems. All rights reserved.</p><p>Smart Parking Management Platform</p></footer>
+  <script src="script.js"></script><script src="dashboard.js"></script>
 </body>
 </html>

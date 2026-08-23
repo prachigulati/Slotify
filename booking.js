@@ -36,6 +36,17 @@ const durationInput = document.getElementById("duration");
 let bookedSlots =
     JSON.parse(localStorage.getItem("parkingBookings")) || [];
 
+const bookingDetailsKey = "parkingBookingDetails";
+
+function getBookingDetails() {
+    try {
+        const details = JSON.parse(localStorage.getItem(bookingDetailsKey));
+        return Array.isArray(details) ? details : [];
+    } catch (error) {
+        return [];
+    }
+}
+
 
 
 function loadBookedSlots() {
@@ -192,6 +203,11 @@ confirmBtn.addEventListener("click", () => {
     }
 
 
+    const session = getCurrentUser();
+    const duration = Number(durationInput.value) || 1;
+    const bookedAt = new Date();
+    const bookingDetails = getBookingDetails();
+
     // Book each selected slot
 
     selected.forEach((checkbox) => {
@@ -206,6 +222,18 @@ confirmBtn.addEventListener("click", () => {
             bookedSlots.push(slotId);
 
         }
+
+        const meta = zoneMeta[checkbox.dataset.zone];
+        bookingDetails.push({
+            id: `${slotId}-${bookedAt.getTime()}`,
+            userEmail: session ? session.email : "",
+            slotId,
+            slotLabel: checkbox.dataset.label,
+            zone: meta ? meta.name : "Parking zone",
+            duration,
+            bookedAt: bookedAt.toISOString(),
+            endsAt: new Date(bookedAt.getTime() + duration * 60 * 60 * 1000).toISOString()
+        });
 
 
         // Disable checkbox
@@ -240,10 +268,12 @@ confirmBtn.addEventListener("click", () => {
         "parkingBookings",
         JSON.stringify(bookedSlots)
     );
+    localStorage.setItem(bookingDetailsKey, JSON.stringify(bookingDetails));
 
 
     // Show confirmation
 
+    confirmMsg.textContent = "Booking confirmed. View it anytime in My bookings.";
     confirmMsg.style.display = "block";
 
 
