@@ -20,7 +20,6 @@ const zoneMeta = {
     reservedExit: { name: "Reserved Parking E/Exit", price: 45 }
 };
 
-//i have accessed all the dom elements here!!
 
 const checkboxes = document.querySelectorAll(".slot-checkbox");
 const list = document.querySelector("#summary-list");
@@ -29,8 +28,6 @@ const confirmBtn = document.querySelector("#confirm-btn");
 const confirmMsg = document.querySelector("#confirm-msg");
 const totalEl = document.querySelector("#summary-total");
 const durationInput = document.getElementById("duration");
-
-
 
 
 let bookedSlots =
@@ -48,22 +45,15 @@ function getBookingDetails() {
 }
 
 
-
 function loadBookedSlots() {
-
     checkboxes.forEach((checkbox) => {
-
         const slotId = checkbox.id;
-
         if (bookedSlots.includes(slotId)) {
-
             checkbox.checked = false;
             checkbox.disabled = true;
-
             const slot = document.querySelector(
                 `label[for="${checkbox.id}"]`
             );
-
             if (slot) {
                 slot.classList.add("booked");
             }
@@ -75,154 +65,75 @@ function loadBookedSlots() {
 
 
 function render() {
-
     const selected = [...checkboxes].filter(
         checkbox => checkbox.checked
     );
-
     list.innerHTML = "";
-
-
-    // No slot selected
-
     if (selected.length === 0) {
-
         emptyMsg.style.display = "block";
         totalEl.textContent = "₹0";
         confirmBtn.disabled = true;
-
         return;
     }
-
-
     emptyMsg.style.display = "none";
-
-
-    // Get duration
-
     const duration = Number(durationInput.value) || 1;
-
     let total = 0;
-
-
-    // Selected slots
-
     selected.forEach((checkbox) => {
-
         const zone = checkbox.dataset.zone;
-
         const meta = zoneMeta[zone];
-
-
-        // Safety check
-
         if (!meta) {
-
             console.error(
                 "No zoneMeta found for:",
                 zone
             );
-
             return;
         }
-
-
-        // Calculate cost
-
         const cost = meta.price * duration;
-
         total += cost;
-
-
-        // Create summary item
-
         const li = document.createElement("li");
-
         li.innerHTML = `
             <span class="slot-name">
                 ${checkbox.dataset.label}
             </span>
-
             <span class="slot-zone">
                 ${meta.name} - ₹${meta.price}/hour
             </span>
         `;
-
         list.appendChild(li);
-
     });
-
-
-    // Display total
-
     totalEl.textContent = `₹${total}`;
-
     confirmBtn.disabled = false;
 }
 
 
-// ========================================
-// CHECKBOX EVENT
-// ========================================
-
 checkboxes.forEach((checkbox) => {
-
     checkbox.addEventListener("change", () => {
-
         render();
-
     });
-
 });
 
-
-// ========================================
-// DURATION EVENT
-// ========================================
 
 durationInput.addEventListener("input", () => {
-
     render();
-
 });
 
 
-// ========================================
-// CONFIRM BOOKING
-// ========================================
-
 confirmBtn.addEventListener("click", () => {
-
     const selected = [...checkboxes].filter(
         checkbox => checkbox.checked
     );
-
-
     if (selected.length === 0) {
         return;
     }
-
-
     const session = getCurrentUser();
     const duration = Number(durationInput.value) || 1;
     const bookedAt = new Date();
     const bookingDetails = getBookingDetails();
-
-    // Book each selected slot
-
     selected.forEach((checkbox) => {
-
         const slotId = checkbox.id;
-
-
-        // Add to booked slots
-
         if (!bookedSlots.includes(slotId)) {
-
             bookedSlots.push(slotId);
-
         }
-
         const meta = zoneMeta[checkbox.dataset.zone];
         bookingDetails.push({
             id: `${slotId}-${bookedAt.getTime()}`,
@@ -234,59 +145,24 @@ confirmBtn.addEventListener("click", () => {
             bookedAt: bookedAt.toISOString(),
             endsAt: new Date(bookedAt.getTime() + duration * 60 * 60 * 1000).toISOString()
         });
-
-
-        // Disable checkbox
-
         checkbox.checked = false;
         checkbox.disabled = true;
-
-
-        // Find label
-
         const slot = document.querySelector(
             `label[for="${checkbox.id}"]`
         );
-
-
-        // Add booked class
-
         if (slot) {
-
             slot.classList.add("booked");
-
         }
-
     });
-
-
-    // ========================================
-    // SAVE TO LOCAL STORAGE
-    // ========================================
-
     localStorage.setItem(
         "parkingBookings",
         JSON.stringify(bookedSlots)
     );
     localStorage.setItem(bookingDetailsKey, JSON.stringify(bookingDetails));
-
-
-    // Show confirmation
-
     confirmMsg.textContent = "Booking confirmed. View it anytime in My bookings.";
     confirmMsg.style.display = "block";
-
-
-    // Re-render
-
     render();
-
 });
-
-
-// ========================================
-// INITIAL LOAD
-// ========================================
 
 loadBookedSlots();
 

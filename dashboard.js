@@ -18,8 +18,6 @@ function emptyState(container, message) { container.innerHTML = `<div class="emp
 function renderDashboard() {
   checkAuth('user'); const user = getCurrentUser(); document.getElementById('dashboard-user-name').textContent = user.name; document.getElementById('dashboard-title').textContent = `${user.name}'s bookings`;
   const now = Date.now(); const savedBookings = readBookings();
-  // Older versions stored only slot IDs. Show those browser-local records until a
-  // newly detailed booking is created; they did not contain a user or end time.
   const userBookings = savedBookings.length
     ? savedBookings.filter(booking => booking.userEmail === user.email)
     : readLegacyBookings().map(slotId => ({ slotId, slotLabel: slotId, zone: 'Existing parking booking' }));

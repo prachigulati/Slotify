@@ -7,7 +7,6 @@ body {
     line-height: 1.5;
 }
 
-/* Nav */
 header {
     position: fixed;
     top: 0;
@@ -84,7 +83,6 @@ header {
     border-color: #9ca3af;
 }
 
-/* Auth Pages Styling */
 .auth-body {
     display: flex;
     align-items: center;
@@ -154,7 +152,6 @@ header {
     font-weight: bold;
 }
 
-/* Hero */
 .hero {
     padding: 150px 5% 60px;
     max-width: 1200px;
@@ -229,7 +226,6 @@ header {
     transform: scale(1.02);
 }
 
-/* Sections */
 section {
     max-width: 1200px;
     margin: 0 auto;
@@ -251,7 +247,6 @@ section {
     margin: 0;
 }
 
-/* Features */
 .grid-3 {
     display: flex;
     gap: 20px;
@@ -295,7 +290,6 @@ section {
     color: #22c55e;
 }
 
-/* Dual Section */
 .dual-section {
     background: #12141c;
     border: 1px solid #222634;
@@ -373,7 +367,6 @@ section {
     padding: 30px;
 }
 
-/* Simulator */
 .sim-box {
     background: #12141c;
     border: 1px solid #222634;
@@ -429,7 +422,6 @@ section {
     color: #9ca3af;
 }
 
-/* Steps */
 .steps-grid {
     display: flex;
     gap: 30px;
@@ -459,7 +451,6 @@ section {
     margin: 0;
 }
 
-/* CTA */
 .cta-banner {
     background: #12141c;
     border: 1px solid #222634;
@@ -481,7 +472,6 @@ section {
     margin: 0 auto 30px auto;
 }
 
-/* Footer */
 footer {
     border-top: 1px solid #222634;
     background: #0a0b0e;
