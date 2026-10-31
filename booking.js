@@ -99,6 +99,7 @@ function render() {
                 ${meta.name} - ₹${meta.price}/hour
             </span>
         `;
+list.appendChild(li);
         list.appendChild(li);
     });
     totalEl.textContent = `₹${total}`;
