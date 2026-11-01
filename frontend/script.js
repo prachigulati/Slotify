@@ -32,7 +32,12 @@ function switchTab(role, button) {
 // Slotify Frontend Authentication
 // ========================================
 
-const API_URL = "http://localhost:5000/api/auth";
+const API_HOST = window.location.hostname || "localhost";
+const API_PROTOCOL = window.location.protocol === "file:"
+    ? "http:"
+    : window.location.protocol;
+const API_BASE_URL = `${API_PROTOCOL}//${API_HOST}:5000`;
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 // ----------------------------------------
 // Get the currently logged-in user
@@ -129,7 +134,7 @@ async function handleSignup(event) {
         console.error("Signup error:", error);
 
         errorMessage.textContent =
-            "Cannot connect to the server. Please try again.";
+            "Cannot reach the server. Start the backend with `npm --prefix backend run dev`, then try again.";
 
         errorMessage.style.display = "block";
     }
@@ -186,7 +191,7 @@ async function handleLogin(event) {
         console.error("Login error:", error);
 
         errorMessage.textContent =
-            "Cannot connect to the server. Please try again.";
+            "Cannot reach the server. Start the backend with `npm --prefix backend run dev`, then try again.";
 
         errorMessage.style.display = "block";
     }

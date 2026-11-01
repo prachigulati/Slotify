@@ -4,11 +4,13 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 
-// Load environment variables from backend/.env
-dotenv.config();
+// Load project-root settings first, then fill missing values from backend/.env.
+dotenv.config({ path: path.join(__dirname, "../.env") });
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const authRoutes = require("./routes/auth");
 const testRoutes = require("./routes/test");
+const uploadRoutes = require("./routes/uploads");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -33,6 +35,7 @@ app.use(express.static(frontendPath));
 // Signup and login APIs
 app.use("/api/auth", authRoutes);
 app.use("/api/test", testRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // -------------------- HOME ROUTE --------------------
 

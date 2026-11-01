@@ -2,8 +2,37 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
+router.get("/me", authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId).select(
+            "name email role profilePicture profilePictureFileId aadhaarDocument.fileId aadhaarDocument.filename"
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: "User account not found." });
+        }
+
+        return res.status(200).json({
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                hasProfilePicture: Boolean(user.profilePictureFileId || user.profilePicture),
+                hasAadhaarDocument: Boolean(user.aadhaarDocument)
+            }
+        });
+    } catch (error) {
+        console.error("Profile lookup error:", error.message);
+        return res.status(500).json({
+            message: "Something went wrong while loading your profile."
+        });
+    }
+});
 
 // SIGNUP
 router.post("/signup", async (req, res) => {
