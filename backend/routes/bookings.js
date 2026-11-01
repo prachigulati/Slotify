@@ -1,10 +1,32 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
+const QRCode = require("qrcode");
 const Booking = require("../models/Booking");
 const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 const activeStatuses = { $in: ["reserved", "confirmed"] };
+const qrSecret = () => process.env.JWT_SECRET;
+
+const createQrToken = (booking) => jwt.sign(
+    {
+        bookingId: booking._id.toString(),
+        purpose: "slotify-parking-check-in"
+    },
+    qrSecret(),
+    { expiresIn: "7d" }
+);
+
+const getBookingFromQrToken = async (qrToken) => {
+    const decoded = jwt.verify(qrToken, qrSecret());
+    if (decoded.purpose !== "slotify-parking-check-in") {
+        throw new Error("Invalid QR purpose.");
+    }
+
+    return Booking.findById(decoded.bookingId);
+};
 
 const isValidTime = (value) => /^\d{2}:\d{2}$/.test(value);
 
@@ -101,6 +123,110 @@ router.get("/mine", authMiddleware, async (req, res) => {
         return res.status(500).json({
             message: "Could not load your bookings."
         });
+    }
+});
+
+router.get("/:bookingId/qr", authMiddleware, async (req, res) => {
+    try {
+        if (!mongoose.isValidObjectId(req.params.bookingId)) {
+            return res.status(400).json({ message: "Invalid booking ID." });
+        }
+
+        const booking = await Booking.findOne({
+            _id: req.params.bookingId,
+            userId: req.user.userId,
+            status: { $in: ["reserved", "confirmed", "checked_in"] }
+        });
+
+        if (!booking) {
+            return res.status(404).json({
+                message: "Active booking not found."
+            });
+        }
+
+        const qrToken = createQrToken(booking);
+        const qrCode = await QRCode.toDataURL(qrToken, {
+            errorCorrectionLevel: "M",
+            margin: 2,
+            width: 280
+        });
+
+        return res.status(200).json({ qrToken, qrCode });
+    } catch (error) {
+        console.error("QR generation error:", error.message);
+        return res.status(500).json({
+            message: "Could not generate the booking QR code."
+        });
+    }
+});
+
+router.post("/check-in", authMiddleware, roleMiddleware("admin"), async (req, res) => {
+    try {
+        if (!req.body.qrToken || typeof req.body.qrToken !== "string") {
+            return res.status(400).json({ message: "A QR token is required." });
+        }
+
+        const booking = await getBookingFromQrToken(req.body.qrToken);
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found." });
+        }
+
+        if (booking.status !== "confirmed" && booking.status !== "reserved") {
+            return res.status(409).json({
+                message: `Booking cannot be checked in because it is ${booking.status}.`
+            });
+        }
+
+        booking.status = "checked_in";
+        booking.checkedInAt = new Date();
+        await booking.save();
+
+        return res.status(200).json({
+            message: "Vehicle checked in successfully.",
+            booking
+        });
+    } catch (error) {
+        if (error.name === "TokenExpiredError" || error.name === "JsonWebTokenError") {
+            return res.status(400).json({ message: "The QR code is invalid or expired." });
+        }
+
+        console.error("Check-in error:", error.message);
+        return res.status(500).json({ message: "Could not check in the vehicle." });
+    }
+});
+
+router.post("/check-out", authMiddleware, roleMiddleware("admin"), async (req, res) => {
+    try {
+        if (!req.body.qrToken || typeof req.body.qrToken !== "string") {
+            return res.status(400).json({ message: "A QR token is required." });
+        }
+
+        const booking = await getBookingFromQrToken(req.body.qrToken);
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found." });
+        }
+
+        if (booking.status !== "checked_in") {
+            return res.status(409).json({
+                message: "Only a checked-in booking can be checked out."
+            });
+        }
+
+        booking.status = "completed";
+        booking.checkedOutAt = new Date();
+        await booking.save();
+
+        return res.status(200).json({
+            message: "Vehicle checked out successfully.",
+            booking
+        });
+    } catch (error) {
+        if (error.name === "TokenExpiredError" || error.name === "JsonWebTokenError") {
+            return res.status(400).json({ message: "The QR code is invalid or expired." });
+        }
+
+        console.error("Check-out error:", error.message);
+        return res.status(500).json({ message: "Could not check out the vehicle." });
     }
 });
 

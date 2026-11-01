@@ -28,6 +28,16 @@
                 <h3>Total Capacity</h3>
                 <p>120 Slots</p>
             </div>
+            <section class="admin-stat" style="max-width: 720px;">
+                <h3>QR Check-in / Check-out</h3>
+                <p>Paste the scanned booking QR value to update the vehicle status.</p>
+                <textarea id="qrToken" rows="4" style="width: 100%; margin-top: 12px; padding: 10px;" placeholder="Paste QR token here"></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 12px;">
+                    <button id="checkInButton" class="btn btn-primary">Check in</button>
+                    <button id="checkOutButton" class="btn btn-outline">Check out</button>
+                </div>
+                <p id="qrMessage" role="status" aria-live="polite" style="margin-top: 12px;"></p>
+            </section>
             <div class="admin-stat">
                 <h3>Current Occupancy</h3>
                 <p>84% Filled</p>
@@ -48,6 +58,32 @@
     <script>
         checkAuth('admin');
         document.getElementById('adminNameDisplay').innerText = 'Admin: ' + getCurrentUser().name;
+
+        async function updateBookingStatus(action) {
+            const token = document.getElementById('qrToken').value.trim();
+            const message = document.getElementById('qrMessage');
+            if (!token) {
+                message.textContent = 'Scan or paste a booking QR value first.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/bookings/${action}`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ qrToken: token })
+                });
+                const data = await response.json();
+                message.textContent = data.message || 'Request completed.';
+                if (response.ok) document.getElementById('qrToken').value = '';
+            } catch (error) {
+                console.error('QR status update error:', error);
+                message.textContent = 'Could not reach the server.';
+            }
+        }
+
+        document.getElementById('checkInButton').addEventListener('click', () => updateBookingStatus('check-in'));
+        document.getElementById('checkOutButton').addEventListener('click', () => updateBookingStatus('check-out'));
     </script>
 </body>
 </html>

@@ -86,3 +86,10 @@ Additional authenticated endpoints:
 
 * `GET /api/bookings/mine` - list the current user's bookings
 * `PATCH /api/bookings/:bookingId/cancel` - cancel an active owned booking
+* `GET /api/bookings/:bookingId/qr` - generate the owner's signed QR code
+* `POST /api/bookings/check-in` - admin-only check-in using a QR token
+* `POST /api/bookings/check-out` - admin-only check-out using a QR token
+
+QR tokens are signed with `JWT_SECRET` and do not contain personal booking
+details. A booking moves from `confirmed` to `checked_in` at entry and to
+`completed` at exit. Reusing a QR code for an invalid status is rejected.

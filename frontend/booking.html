@@ -507,6 +507,11 @@
 <div class="pt-2">
 <button class="w-full py-3.5 px-6 rounded-xl bg-[#0025ff] hover:bg-[#001ecc] active:scale-[0.99] text-white font-display font-extrabold tracking-wide uppercase text-sm shadow-md transition-all flex items-center justify-center gap-2 group" id="btn-confirm"><span class="">CONFIRM BOOKING</span><svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg></button>
 <p id="booking-message" class="mt-3 text-center text-sm text-emerald-700" role="status" aria-live="polite"></p>
+<div id="booking-qr" class="hidden mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+  <p class="font-semibold text-emerald-900">Show this QR code at the parking entrance</p>
+  <img id="booking-qr-image" class="mx-auto mt-3 rounded-lg bg-white p-2" alt="Booking check-in QR code">
+  <p class="mt-2 text-xs text-emerald-800">An administrator will scan it to check you in and out.</p>
+</div>
 <div class="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
 <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
 <span class="font-medium">Booking details are saved in this browser</span>

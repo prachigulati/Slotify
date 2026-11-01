@@ -18,6 +18,8 @@ function initializeBookingPage() {
   const confirmButton = document.getElementById('btn-confirm');
   const clearButton = document.getElementById('btn-clear-selection');
   const message = document.getElementById('booking-message');
+  const bookingQr = document.getElementById('booking-qr');
+  const bookingQrImage = document.getElementById('booking-qr-image');
   const availableCount = document.getElementById('available-count');
   const slots = [...document.querySelectorAll('.slot-btn')];
   const bookingDetailsKey = 'parkingBookingDetails';
@@ -196,6 +198,15 @@ function initializeBookingPage() {
         return;
       }
 
+      const qrResponse = await fetch(
+        `${API_BASE_URL}/api/bookings/${data.booking._id}/qr`,
+        { headers: getAuthHeaders() }
+      );
+      const qrData = await qrResponse.json();
+      if (!qrResponse.ok) {
+        throw new Error(qrData.message || 'Could not generate the booking QR code.');
+      }
+
       const booking = {
         id: data.booking._id,
         userEmail: user.email,
@@ -207,6 +218,8 @@ function initializeBookingPage() {
         endsAt: `${bookingDate}T${endTime}:00`
       };
       confirmedSlotLabel = booking.slotLabel;
+      bookingQrImage.src = qrData.qrCode;
+      bookingQr.classList.remove('hidden');
       bookedSlots.push(state.selectedSlot);
       bookingDetails.push(booking);
       localStorage.setItem('parkingBookings', JSON.stringify(bookedSlots));
