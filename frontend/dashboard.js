@@ -203,6 +203,10 @@ function renderDashboard() {
   document.getElementById('dashboard-title').textContent = `${user.name}'s bookings`;
   setProfilePicture(Boolean(user.profilePicture), user.name);
   loadProfile();
+  document.getElementById('edit-profile-button').addEventListener('click', () => {
+    document.getElementById('profile-picture-file').click();
+  });
+  document.getElementById('profile-picture-file').addEventListener('change', uploadProfilePicture);
   document.getElementById('upload-profile-picture').addEventListener('click', uploadProfilePicture);
   document.getElementById('upload-aadhaar-document').addEventListener('click', uploadAadhaarDocument);
   document.getElementById('download-aadhaar-document').addEventListener('click', downloadAadhaarDocument);
