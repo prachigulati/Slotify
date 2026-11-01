@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 const authRoutes = require("./routes/auth");
+const bookingRoutes = require("./routes/bookings");
 const testRoutes = require("./routes/test");
 const uploadRoutes = require("./routes/uploads");
 const app = express();
@@ -34,6 +35,7 @@ app.use(express.static(frontendPath));
 
 // Signup and login APIs
 app.use("/api/auth", authRoutes);
+app.use("/api/bookings", bookingRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/uploads", uploadRoutes);
 

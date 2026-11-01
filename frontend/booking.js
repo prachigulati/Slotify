@@ -158,34 +158,65 @@ function initializeBookingPage() {
     });
   });
 
-  confirmButton.addEventListener('click', () => {
+  confirmButton.addEventListener('click', async () => {
     if (!state.selectedSlot) return;
 
     const bookedAt = new Date();
-    const endsAt = new Date(bookedAt.getTime() + state.durationHours * 60 * 60 * 1000);
-    const selected = slots.find(slot => slot.dataset.slot === state.selectedSlot);
-    const booking = {
-      id: `${state.selectedSlot}-${bookedAt.getTime()}`,
-      userEmail: user.email,
-      slotId: state.selectedSlot,
-      slotLabel: state.selectedSlot,
-      zone: state.slotType === 'premium' ? 'Premium Parking' : state.slotType === 'ev' ? 'EV Charging Bay' : 'Basement Level 1 Parking',
-      duration: state.durationHours,
-      bookedAt: bookedAt.toISOString(),
-      endsAt: endsAt.toISOString()
-    };
+    const startHour = bookedAt.getHours() + 1;
+    if (startHour + state.durationHours > 24) {
+      message.textContent = 'Please book earlier in the day for the selected duration.';
+      return;
+    }
 
-    bookedSlots.push(state.selectedSlot);
-    bookingDetails.push(booking);
+    const bookingDate = [
+      bookedAt.getFullYear(),
+      String(bookedAt.getMonth() + 1).padStart(2, '0'),
+      String(bookedAt.getDate()).padStart(2, '0')
+    ].join('-');
+    const startTime = `${String(startHour).padStart(2, '0')}:00`;
+    const endTime = `${String(startHour + state.durationHours).padStart(2, '0')}:00`;
+    const selected = slots.find(slot => slot.dataset.slot === state.selectedSlot);
+    let confirmedSlotLabel = state.selectedSlot;
+
     try {
+      confirmButton.disabled = true;
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          slotId: state.selectedSlot,
+          bookingDate,
+          startTime,
+          endTime
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        message.textContent = data.message || 'This slot is no longer available.';
+        return;
+      }
+
+      const booking = {
+        id: data.booking._id,
+        userEmail: user.email,
+        slotId: state.selectedSlot,
+        slotLabel: state.selectedSlot,
+        zone: state.slotType === 'premium' ? 'Premium Parking' : state.slotType === 'ev' ? 'EV Charging Bay' : 'Basement Level 1 Parking',
+        duration: state.durationHours,
+        bookedAt: `${bookingDate}T${startTime}:00`,
+        endsAt: `${bookingDate}T${endTime}:00`
+      };
+      confirmedSlotLabel = booking.slotLabel;
+      bookedSlots.push(state.selectedSlot);
+      bookingDetails.push(booking);
       localStorage.setItem('parkingBookings', JSON.stringify(bookedSlots));
       localStorage.setItem(bookingDetailsKey, JSON.stringify(bookingDetails));
     } catch (error) {
       console.error('Could not save booking:', error);
-      bookedSlots.pop();
-      bookingDetails.pop();
-      message.textContent = 'Your booking could not be saved. Please try again.';
+      message.textContent = 'Could not reach the server. Please try again.';
       return;
+    } finally {
+      confirmButton.disabled = !state.selectedSlot;
     }
 
     if (selected) {
@@ -194,7 +225,7 @@ function initializeBookingPage() {
       selected.classList.add('occupied', 'cursor-not-allowed');
     }
     setSelectedSlot(null);
-    message.textContent = `Booking confirmed for ${booking.slotLabel}. View it in My bookings.`;
+    message.textContent = `Booking confirmed for ${confirmedSlotLabel}. View it in My bookings.`;
   });
 
   updateBookingSummary();

@@ -73,3 +73,16 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Keep the key secret and back it up separately from the encrypted documents. Every application instance that needs to read the documents must use the same key; distribute it only through a trusted secret manager or another secure channel. Losing or changing the key makes existing uploads unreadable. Back up the GridFS collections and the key.
 
 Existing uploads from the prior local-disk implementation can be moved into GridFS by running `npm run migrate:uploads-to-gridfs` from `backend/` on the machine that has both the existing `backend/uploads/` and `backend/private-uploads/` files and access to MongoDB. The migration updates each user record before removing the corresponding local file; keep a backup before running it.
+
+## Booking API
+
+Authenticated users can create bookings through `POST /api/bookings` with a
+`slotId`, `bookingDate` (`YYYY-MM-DD`), `startTime` (`HH:MM`), and `endTime`
+(`HH:MM`). The API checks for overlapping active bookings and MongoDB enforces
+a unique constraint for the same slot and time range. Duplicate or overlapping
+requests return HTTP `409`.
+
+Additional authenticated endpoints:
+
+* `GET /api/bookings/mine` - list the current user's bookings
+* `PATCH /api/bookings/:bookingId/cancel` - cancel an active owned booking
