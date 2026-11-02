@@ -1,11 +1,3 @@
-function readBookings() {
-  try { const saved = JSON.parse(localStorage.getItem('parkingBookingDetails')); return Array.isArray(saved) ? saved : []; }
-  catch (error) { return []; }
-}
-function readLegacyBookings() {
-  try { const saved = JSON.parse(localStorage.getItem('parkingBookings')); return Array.isArray(saved) ? saved : []; }
-  catch (error) { return []; }
-}
 function formatDate(value) { return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
 function bookingCard(booking, isCurrent) {
   const card = document.createElement('article'); card.className = 'booking-card';
@@ -15,6 +7,30 @@ function bookingCard(booking, isCurrent) {
   return card;
 }
 function emptyState(container, message) { container.innerHTML = `<div class="empty-bookings"><p>${message}</p><a href="booking.html" class="btn">Book a spot</a></div>`; }
+function mapServerBooking(booking) {
+  return {
+    id: booking._id,
+    slotId: booking.slotId,
+    slotLabel: booking.slotId,
+    zone: 'Parking slot',
+    status: booking.status,
+    bookedAt: booking.createdAt,
+    endsAt: `${booking.bookingDate}T${booking.endTime}:00`
+  };
+}
+async function loadServerBookings() {
+  const response = await fetch(`${API_BASE_URL}/api/bookings/mine`, {
+    headers: getAuthHeaders()
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Could not load bookings from the server.');
+  }
+  if (!Array.isArray(data.bookings)) {
+    throw new Error('The server returned an invalid bookings response.');
+  }
+  return data.bookings.map(mapServerBooking);
+}
 let profilePictureObjectUrl;
 async function setProfilePicture(hasProfilePicture, name) {
   const image = document.getElementById('profile-picture');
@@ -196,7 +212,7 @@ async function uploadProfilePicture() {
     button.disabled = false;
   }
 }
-function renderDashboard() {
+async function renderDashboard() {
   if (!checkAuth('user')) return;
   const user = getCurrentUser();
   document.getElementById('dashboard-user-name').textContent = user.name;
@@ -211,11 +227,25 @@ function renderDashboard() {
   document.getElementById('upload-aadhaar-document').addEventListener('click', uploadAadhaarDocument);
   document.getElementById('download-aadhaar-document').addEventListener('click', downloadAadhaarDocument);
   document.getElementById('delete-aadhaar-document').addEventListener('click', deleteAadhaarDocument);
-  const now = Date.now(); const savedBookings = readBookings();
-  const userBookings = savedBookings.length
-    ? savedBookings.filter(booking => booking.userEmail === user.email)
-    : readLegacyBookings().map(slotId => ({ slotId, slotLabel: slotId, zone: 'Existing parking booking' }));
-  const current = userBookings.filter(booking => !booking.endsAt || new Date(booking.endsAt).getTime() > now); const past = userBookings.filter(booking => booking.endsAt && new Date(booking.endsAt).getTime() <= now);
+  let userBookings;
+  try {
+    userBookings = await loadServerBookings();
+  } catch (error) {
+    console.error('Booking loading error:', error);
+    document.getElementById('current-count').textContent = '—';
+    document.getElementById('past-count').textContent = '—';
+    document.getElementById('current-bookings').innerHTML =
+      '<div class="empty-bookings"><p>Could not load your bookings from the server. Please try again.</p></div>';
+    document.getElementById('past-bookings').innerHTML =
+      '<div class="empty-bookings"><p>Your booking history is unavailable until the server responds.</p></div>';
+    return;
+  }
+  const now = Date.now();
+  const current = userBookings.filter(booking =>
+    (!booking.status || ['reserved', 'confirmed', 'checked_in'].includes(booking.status)) &&
+    (!booking.endsAt || new Date(booking.endsAt).getTime() > now)
+  );
+  const past = userBookings.filter(booking => !current.includes(booking));
   document.getElementById('current-count').textContent = current.length; document.getElementById('past-count').textContent = past.length;
   const currentContainer = document.getElementById('current-bookings'); const pastContainer = document.getElementById('past-bookings');
   if (current.length) current.sort((a, b) => new Date(a.endsAt) - new Date(b.endsAt)).forEach(booking => currentContainer.appendChild(bookingCard(booking, true))); else emptyState(currentContainer, 'You do not have any active bookings.');
